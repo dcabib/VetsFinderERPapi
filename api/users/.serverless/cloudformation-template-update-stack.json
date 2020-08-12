@@ -1,0 +1,391 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "The AWS CloudFormation template for this Serverless application",
+  "Resources": {
+    "ServerlessDeploymentBucket": {
+      "Type": "AWS::S3::Bucket",
+      "Properties": {
+        "BucketEncryption": {
+          "ServerSideEncryptionConfiguration": [
+            {
+              "ServerSideEncryptionByDefault": {
+                "SSEAlgorithm": "AES256"
+              }
+            }
+          ]
+        }
+      }
+    },
+    "ServerlessDeploymentBucketPolicy": {
+      "Type": "AWS::S3::BucketPolicy",
+      "Properties": {
+        "Bucket": {
+          "Ref": "ServerlessDeploymentBucket"
+        },
+        "PolicyDocument": {
+          "Statement": [
+            {
+              "Action": "s3:*",
+              "Effect": "Deny",
+              "Principal": "*",
+              "Resource": [
+                {
+                  "Fn::Join": [
+                    "",
+                    [
+                      "arn:",
+                      {
+                        "Ref": "AWS::Partition"
+                      },
+                      ":s3:::",
+                      {
+                        "Ref": "ServerlessDeploymentBucket"
+                      },
+                      "/*"
+                    ]
+                  ]
+                }
+              ],
+              "Condition": {
+                "Bool": {
+                  "aws:SecureTransport": false
+                }
+              }
+            }
+          ]
+        }
+      }
+    },
+    "TokenLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/VetsFinderERPapi-users-dev-token"
+      }
+    },
+    "UsersCreateLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/VetsFinderERPapi-users-dev-usersCreate"
+      }
+    },
+    "TokenLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/VetsFinderERPapi-users/dev/1597189008971-2020-08-11T23:36:48.971Z/VetsFinderERPapi-users.zip"
+        },
+        "FunctionName": "VetsFinderERPapi-users-dev-token",
+        "Handler": "token.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-IamRoleLambdaExecution"
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 10,
+        "Environment": {
+          "Variables": {
+            "SECRET": "BLAHBLAHBLAH",
+            "USERS_TABLE": {
+              "Fn::ImportValue": "VetsFinderERPapi-root-dev-UsersTable"
+            }
+          }
+        }
+      },
+      "DependsOn": [
+        "TokenLogGroup"
+      ]
+    },
+    "TokenLambdaVersionIDeUOHhnviTmYyU4fCN8AN4LfqY0KBQ3upD3fzkU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "TokenLambdaFunction"
+        },
+        "CodeSha256": "reqobMIkrnXuHTx56zpEN34ckNxac/otwhWwlRWz0sU="
+      }
+    },
+    "UsersCreateLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/VetsFinderERPapi-users/dev/1597189008971-2020-08-11T23:36:48.971Z/VetsFinderERPapi-users.zip"
+        },
+        "FunctionName": "VetsFinderERPapi-users-dev-usersCreate",
+        "Handler": "usersCreate.handler",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-IamRoleLambdaExecution"
+        },
+        "Runtime": "nodejs12.x",
+        "Timeout": 10,
+        "Environment": {
+          "Variables": {
+            "SECRET": "BLAHBLAHBLAH",
+            "USERS_TABLE": {
+              "Fn::ImportValue": "VetsFinderERPapi-root-dev-UsersTable"
+            }
+          }
+        }
+      },
+      "DependsOn": [
+        "UsersCreateLogGroup"
+      ]
+    },
+    "UsersCreateLambdaVersionX8MHwg6SrG8MDdDRxiyJ1kARopGqUsPvh4kcyEwmu4": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "UsersCreateLambdaFunction"
+        },
+        "CodeSha256": "reqobMIkrnXuHTx56zpEN34ckNxac/otwhWwlRWz0sU="
+      }
+    },
+    "ApiGatewayResourceToken": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RootResourceId"
+        },
+        "PathPart": "token",
+        "RestApiId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+        }
+      }
+    },
+    "ApiGatewayResourceUsers": {
+      "Type": "AWS::ApiGateway::Resource",
+      "Properties": {
+        "ParentId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RootResourceId"
+        },
+        "PathPart": "users",
+        "RestApiId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+        }
+      }
+    },
+    "ApiGatewayMethodTokenPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceToken"
+        },
+        "RestApiId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "TokenLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      }
+    },
+    "ApiGatewayMethodUsersPost": {
+      "Type": "AWS::ApiGateway::Method",
+      "Properties": {
+        "HttpMethod": "POST",
+        "RequestParameters": {},
+        "ResourceId": {
+          "Ref": "ApiGatewayResourceUsers"
+        },
+        "RestApiId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+        },
+        "ApiKeyRequired": false,
+        "AuthorizationType": "NONE",
+        "Integration": {
+          "IntegrationHttpMethod": "POST",
+          "Type": "AWS_PROXY",
+          "Uri": {
+            "Fn::Join": [
+              "",
+              [
+                "arn:",
+                {
+                  "Ref": "AWS::Partition"
+                },
+                ":apigateway:",
+                {
+                  "Ref": "AWS::Region"
+                },
+                ":lambda:path/2015-03-31/functions/",
+                {
+                  "Fn::GetAtt": [
+                    "UsersCreateLambdaFunction",
+                    "Arn"
+                  ]
+                },
+                "/invocations"
+              ]
+            ]
+          }
+        },
+        "MethodResponses": []
+      }
+    },
+    "ApiGatewayDeployment1597189000534": {
+      "Type": "AWS::ApiGateway::Deployment",
+      "Properties": {
+        "RestApiId": {
+          "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+        },
+        "StageName": "dev"
+      },
+      "DependsOn": [
+        "ApiGatewayMethodTokenPost",
+        "ApiGatewayMethodUsersPost"
+      ]
+    },
+    "TokenLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "TokenLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    },
+    "UsersCreateLambdaPermissionApiGateway": {
+      "Type": "AWS::Lambda::Permission",
+      "Properties": {
+        "FunctionName": {
+          "Fn::GetAtt": [
+            "UsersCreateLambdaFunction",
+            "Arn"
+          ]
+        },
+        "Action": "lambda:InvokeFunction",
+        "Principal": "apigateway.amazonaws.com",
+        "SourceArn": {
+          "Fn::Join": [
+            "",
+            [
+              "arn:",
+              {
+                "Ref": "AWS::Partition"
+              },
+              ":execute-api:",
+              {
+                "Ref": "AWS::Region"
+              },
+              ":",
+              {
+                "Ref": "AWS::AccountId"
+              },
+              ":",
+              {
+                "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+              },
+              "/*/*"
+            ]
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ServerlessDeploymentBucketName": {
+      "Value": {
+        "Ref": "ServerlessDeploymentBucket"
+      }
+    },
+    "TokenLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "TokenLambdaVersionIDeUOHhnviTmYyU4fCN8AN4LfqY0KBQ3upD3fzkU"
+      }
+    },
+    "UsersCreateLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "UsersCreateLambdaVersionX8MHwg6SrG8MDdDRxiyJ1kARopGqUsPvh4kcyEwmu4"
+      }
+    },
+    "ServiceEndpoint": {
+      "Description": "URL of the service endpoint",
+      "Value": {
+        "Fn::Join": [
+          "",
+          [
+            "https://",
+            {
+              "Fn::ImportValue": "VetsFinderERPapi-root-dev-RestApiId"
+            },
+            ".execute-api.",
+            {
+              "Ref": "AWS::Region"
+            },
+            ".",
+            {
+              "Ref": "AWS::URLSuffix"
+            },
+            "/dev"
+          ]
+        ]
+      }
+    }
+  }
+}

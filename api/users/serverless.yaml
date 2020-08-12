@@ -1,0 +1,71 @@
+#
+# User Management microservice
+# 
+
+service: ${self:custom.config.appname}-users
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 1024MB
+  timeout: 10
+
+  role:
+    Fn::ImportValue: ${self:custom.config.appname}-root-${opt:stage}-IamRoleLambdaExecution
+
+  apiGateway:
+    restApiId: 
+      Fn::ImportValue: '${self:custom.config.appname}-root-${opt:stage}-RestApiId'
+    restApiRootResourceId:
+      Fn::ImportValue: '${self:custom.config.appname}-root-${opt:stage}-RootResourceId'
+    # restApiResources:
+    #   users: { 'Fn::ImportValue': '${self:custom.config.appname}-root-${opt:stage}-ApiGatewayResourceUsers' }
+    #   users/me:
+    #     Fn::ImportValue: '${self:custom.config.appname}-root-${opt:stage}-ApiGatewayResourceUsersMe'
+
+  environment:
+    # NOTE: change this before deploying
+    SECRET: ${self:custom.config.encryption.secret}
+
+    USERS_TABLE:
+      Fn::ImportValue: ${self:custom.config.appname}-root-${opt:stage}-UsersTable
+
+custom:
+  config: ${file(../../config.yaml)}
+
+  webpack:
+    includeModules:
+      forceExclude:
+        - aws-sdk
+      packagePath: ../../package.json
+
+  authorizer:
+    type: CUSTOM
+    authorizerId: 
+      Fn::ImportValue: postsapi-${opt:stage}-ApiGatewayAuthorizerId
+
+plugins:
+  - serverless-webpack
+
+package:
+  include:
+    - ../../node_modules
+
+functions:
+
+  token:
+    handler: token.handler
+    events:
+      - http:
+          method: POST
+          path: /token
+          integration: lambda-proxy
+
+  usersCreate:
+    handler: usersCreate.handler
+    events:
+      - http:
+          method: POST
+          path: /users
+          integration: lambda-proxy
+          # authorizer: ${self:custom.authorizer}
